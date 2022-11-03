@@ -1,15 +1,11 @@
 (async () => {
-  // TO MAKE THE MAP APPEAR YOU MUST
-  // ADD YOUR ACCESS TOKEN FROM
-  // https://account.mapbox.com
   mapboxgl.accessToken =
     "pk.eyJ1IjoiYXRlcml6YXJlaWdhdiIsImEiOiJjbDl4emc4aHcwZnlsM29wbmRscm5mMXkyIn0.Gdeb0G6Kd6NmfI8GHdJ6hQ";
+
   const LS = "igav";
+  const IS_ADMIN = true;
+
   const invert = ([a, b]) => [b, a];
-  const urlify = (text) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, (url) => `<a href="${url}">${url}</a>`);
-  };
   const node = (html) => {
     const div = document.createElement("div");
     div.innerHTML = html;
@@ -47,11 +43,12 @@
 
   const map = new mapboxgl.Map({
     container: "map",
-    //   style: "mapbox://styles/mapbox/satellite-v9",
     style: "mapbox://styles/mapbox/light-v10",
     center: invert([46, 24.9]),
     zoom: 6.2,
   });
+
+  map.addControl(new mapboxgl.NavigationControl());
 
   let pins = [];
   try {
@@ -59,27 +56,6 @@
   } catch (e) {
     console.error(e);
   }
-
-  // let pins = [
-  //   {
-  //     text: "Bacau spital",
-  //     files: ["https://link.com"],
-  //     location: [46.55639, 26.91],
-  //   },
-  //   {
-  //     text: "Botosani",
-  //     files: [],
-  //     location: [47.729, 26.6647],
-  //   },
-  //   {
-  //     text: "Barlad",
-  //     files: [],
-  //     location: [46.2434, 27.6884],
-  //   },
-  // ].map((x) => ({
-  //   ...x,
-  //   location: invert(x.location),
-  // }));
 
   const markers = {};
 
@@ -92,7 +68,10 @@
         </div>`
         : ""
     }`;
-    const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(html);
+    const popup = new mapboxgl.Popup({
+      offset: 25,
+      closeButton: false,
+    }).setHTML(html);
     popup.on("open", () => trigger(document.body, "pin-change", pin));
     popup.on("close", () => trigger(document.body, "pin-change", null));
 
@@ -112,9 +91,9 @@
   (() => {
     // searchbox
     const form = node(`<form class="form-group main-search-form">
-    <button class="btn btn-default" type="submit">🔎</button>
-    <input class="form-control" name="search" type="search" placeholder="Search..." />
-  </form>`);
+        <button class="btn btn-default" type="submit">🔎</button>
+        <input class="form-control" name="search" type="search" placeholder="Search..." />
+      </form>`);
 
     let offset = 0;
     form.addEventListener("submit", (e) => {
@@ -127,11 +106,10 @@
         if (pin.text.search(val) !== -1) {
           map.flyTo({
             center: pin.location,
-            zoom: 7,
+            zoom: 3,
             essential: true, // this animation is considered essential with respect to prefers-reduced-motion
           });
           offset = (pointer + 1) % pins.length;
-          console.log(offset);
           break;
         }
       }
@@ -140,6 +118,9 @@
   })();
 
   (() => {
+    if (!IS_ADMIN) return false;
+    // admin panel
+
     const renderForm = (pin) => {
       pin = pin || {};
       return `
@@ -186,15 +167,13 @@
         }
     `;
     };
-    // admin panel
+
     const admin = node(`<div class="admin-panel">
         <div class="mb-2 d-flex w-100 align-items-center justify-content-between">
             <h5 class="mb-0">Admin Panel</h5>
-            <button type="button" class="btn btn-sm btn-secondary btn-collapse">👁</button>
+            <button type="button" class="btn btn-secondary btn-collapse">👁</button>
         </div>
-        <form class="admin-add-form">
-        </form>
-
+        <form class="admin-add-form"></form>
         <div class="d-flex flex-column mt-5">
             <button class="btn btn-secondary js-export" type="button">Export JSON</button>
         </div>
